@@ -1,13 +1,18 @@
 (function () {
-  // Obtiene la etiqueta <script> actual
+  // 🗣️ Activa el motor de voz tras el primer clic del usuario
+  let vozHabilitada = false;
+  window.addEventListener('click', () => {
+    if (!vozHabilitada) {
+      vozHabilitada = true;
+      speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+    }
+  }, { once: true });
+
   const scriptTag = document.currentScript;
   if (!scriptTag) return;
-
-  // Lee la API Key desde el atributo data-apikey del <script>
   const apiKey = scriptTag.getAttribute('data-apikey');
   if (!apiKey) return console.error('❌ No se encontró la API Key');
 
-  // Solicita al backend la configuración inicial de accesibilidad
   fetch('http://localhost:3000/configuracion', {
     headers: {
       'x-api-key': apiKey
@@ -18,28 +23,24 @@
       return res.json();
     })
     .then(config => {
-      aplicarConfiguracion(config); // Aplica los ajustes recibidos
+      aplicarConfiguracion(config);
     })
     .catch(err => {
       console.error('❌ Error:', err.message);
     });
 
-  // Aplica ajustes como fuente y tamaño de letra según configuración
   function aplicarConfiguracion(config) {
     if (config.fuente === 'OpenDyslexic') {
       document.body.style.fontFamily = '"OpenDyslexic", sans-serif';
-      cargarFuenteCDN(); // Carga la fuente desde CDN si no está ya cargada
+      cargarFuenteCDN();
     }
-
     if (config.tamanoLetra === 'grande') {
       document.body.style.fontSize = '1.3em';
     }
   }
 
-  // Inserta el <link> de la fuente OpenDyslexic desde un CDN
   function cargarFuenteCDN() {
     if (document.getElementById('open-dyslexic-link')) return;
-
     const link = document.createElement('link');
     link.id = 'open-dyslexic-link';
     link.rel = 'stylesheet';
@@ -47,39 +48,24 @@
     document.head.appendChild(link);
   }
 
-  // Crea el botón ♿ y el panel de accesibilidad flotante
   function crearWidget() {
-    // Botón flotante ♿
     const btn = document.createElement('button');
     btn.innerHTML = '♿️';
     btn.title = 'Opciones de accesibilidad';
-    btn.style.position = 'fixed';
-    btn.style.bottom = '20px';
-    btn.style.right = '20px';
-    btn.style.zIndex = '9999';
-    btn.style.width = '45px';
-    btn.style.height = '45px';
-    btn.style.borderRadius = '50%';
-    btn.style.border = 'none';
-    btn.style.backgroundColor = '#0066cc';
-    btn.style.color = '#fff';
-    btn.style.fontSize = '20px';
-    btn.style.cursor = 'pointer';
+    Object.assign(btn.style, {
+      position: 'fixed', bottom: '20px', right: '20px', zIndex: '9999',
+      width: '45px', height: '45px', borderRadius: '50%', border: 'none',
+      backgroundColor: '#0066cc', color: '#fff', fontSize: '20px', cursor: 'pointer'
+    });
     document.body.appendChild(btn);
 
-    // Panel emergente con controles
     const panel = document.createElement('div');
-    panel.style.display = 'none';
-    panel.style.position = 'fixed';
-    panel.style.bottom = '80px';
-    panel.style.right = '20px';
-    panel.style.background = '#fff';
-    panel.style.border = '2px solid #000';
-    panel.style.borderRadius = '10px';
-    panel.style.padding = '10px';
-    panel.style.zIndex = '10000';
+    Object.assign(panel.style, {
+      display: 'none', position: 'fixed', bottom: '80px', right: '20px',
+      background: '#fff', border: '2px solid #000', borderRadius: '10px',
+      padding: '10px', zIndex: '10000'
+    });
 
-    // Botón para aumentar/reducir tamaño de letra
     let fontSize = 100;
     const btnLetra = document.createElement('button');
     btnLetra.textContent = `Letra (${fontSize}%)`;
@@ -89,7 +75,6 @@
       btnLetra.textContent = `Letra (${fontSize}%)`;
     };
 
-    // Botón para activar/desactivar fuente OpenDyslexic
     const btnFuente = document.createElement('button');
     btnFuente.textContent = 'Fuente Dyslexic';
     btnFuente.onclick = () => {
@@ -102,7 +87,6 @@
       }
     };
 
-    // Botón para alternar modo de alto contraste
     const btnContraste = document.createElement('button');
     btnContraste.textContent = 'Contraste';
     btnContraste.onclick = () => {
@@ -111,7 +95,6 @@
       document.body.style.color = active ? '#fff' : '';
     };
 
-    // Botón para restablecer todos los cambios
     const btnReset = document.createElement('button');
     btnReset.textContent = 'Restablecer';
     btnReset.onclick = () => {
@@ -124,107 +107,74 @@
       btnLetra.textContent = `Letra (${fontSize}%)`;
     };
 
-    // Botón para probar la voz
-    const btnVoz = document.createElement('button');
-    btnVoz.textContent = 'Probar Voz';
-    btnVoz.onclick = () => {
-      const mensaje = new SpeechSynthesisUtterance('Prueba de voz funcionando');
-      const voces = speechSynthesis.getVoices();
-      const vozEspanol = voces.find(v => v.lang.startsWith('es'));
-      if (vozEspanol) mensaje.voice = vozEspanol;
-      speechSynthesis.speak(mensaje);
-    };
-
-    // Añade botones al panel y aplica estilos
-    [btnLetra, btnFuente, btnContraste, btnReset, btnVoz].forEach(b => {
-      b.style.display = 'block';
-      b.style.margin = '6px 0';
-      b.style.width = '100%';
-      b.style.padding = '6px';
+    [btnLetra, btnFuente, btnContraste, btnReset].forEach(b => {
+      Object.assign(b.style, {
+        display: 'block', margin: '6px 0', width: '100%', padding: '6px'
+      });
       panel.appendChild(b);
     });
 
     document.body.appendChild(panel);
-
-    // Alternar visibilidad del panel al hacer clic en el botón
     btn.onclick = () => {
       panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     };
   }
 
-  // Detecta imágenes sin descripción (alt) y genera aviso visual y sonoro
   function activarAvisoEnImagenes() {
     const imagenes = document.querySelectorAll('img');
 
     imagenes.forEach(img => {
+      const alt = img.getAttribute('alt');
+      const texto = alt && alt.trim() !== '' ? alt : 'Imagen sin descripción';
+
+      // Evita duplicar eventos e íconos
+      if (img._bocinaAgregada) return;
+      img._bocinaAgregada = true;
+
+      // Contenedor para posicionar bocina solo al hacer hover
+      const contenedor = document.createElement('span');
+      contenedor.style.position = 'relative';
+      img.parentNode.insertBefore(contenedor, img);
+      contenedor.appendChild(img);
+
+      const icono = document.createElement('span');
+      icono.textContent = '🔊';
+      icono.title = texto;
+      icono.classList.add('icono-bocina');
+      Object.assign(icono.style, {
+        position: 'absolute', top: '0px', right: '0px', background: '#fff',
+        borderRadius: '50%', fontSize: '16px', padding: '2px 4px', cursor: 'pointer',
+        display: 'none', boxShadow: '0 0 3px rgba(0,0,0,0.3)', zIndex: '10'
+      });
+
+      icono.onclick = () => {
+        if (!vozHabilitada) return;
+        const mensaje = new SpeechSynthesisUtterance(texto);
+        mensaje.lang = 'es-ES';
+        const voces = speechSynthesis.getVoices();
+        const vozEspanol = voces.find(v => v.lang.startsWith('es'));
+        if (vozEspanol) mensaje.voice = vozEspanol;
+        speechSynthesis.cancel();
+        speechSynthesis.speak(mensaje);
+      };
+
+      contenedor.appendChild(icono);
+
       img.addEventListener('mouseenter', () => {
-        const alt = img.getAttribute('alt');
-        if (!alt || alt.trim() === '') {
-          const aviso = document.createElement('div');
-          aviso.textContent = 'Imagen sin descripción';
-          aviso.className = 'tooltip-imagen-accesibilidad';
-          aviso.style.position = 'fixed';
-          aviso.style.background = 'rgba(0, 0, 0, 0.8)';
-          aviso.style.color = '#fff';
-          aviso.style.padding = '4px 8px';
-          aviso.style.fontSize = '12px';
-          aviso.style.borderRadius = '4px';
-          aviso.style.zIndex = '9999';
-          aviso.style.pointerEvents = 'none';
-
-          document.body.appendChild(aviso);
-
-          const moverTooltip = (e) => {
-            aviso.style.top = e.clientY + 15 + 'px';
-            aviso.style.left = e.clientX + 15 + 'px';
-          };
-
-          if (lastMouseEvent) {
-            moverTooltip(lastMouseEvent);
-          }
-
-          document.addEventListener('mousemove', moverTooltip);
-          img._moverTooltip = moverTooltip;
-          img._tooltipAccesibilidad = aviso;
-
-          const mensaje = new SpeechSynthesisUtterance('Imagen sin descripción');
-
-          function hablar() {
-            const voces = speechSynthesis.getVoices();
-            const vozEspanol = voces.find(v => v.lang.startsWith('es'));
-            if (vozEspanol) mensaje.voice = vozEspanol;
-            if (speechSynthesis.speaking) {
-              speechSynthesis.cancel();
-            }
-            speechSynthesis.speak(mensaje);
-          }
-
-          if (speechSynthesis.getVoices().length === 0) {
-            speechSynthesis.addEventListener('voiceschanged', hablar, { once: true });
-          } else {
-            hablar();
-          }
-        }
+        icono.style.display = 'inline-block';
       });
 
       img.addEventListener('mouseleave', () => {
-        const aviso = img._tooltipAccesibilidad;
-        if (aviso) {
-          aviso.remove();
-          delete img._tooltipAccesibilidad;
-        }
-        document.removeEventListener('mousemove', img._moverTooltip);
+        icono.style.display = 'none';
       });
     });
   }
 
-  // Guarda el último evento de movimiento del mouse para usar en tooltips
   let lastMouseEvent = null;
   document.addEventListener('mousemove', e => {
     lastMouseEvent = e;
   });
 
-  // Inicia creación del widget y aviso en imágenes
   crearWidget();
   activarAvisoEnImagenes();
 })();
